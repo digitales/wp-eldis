@@ -27,6 +27,7 @@ Copyright 2011  Headshift
 
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "eldis_api/EldisApi.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "model.php");
+include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "wp-eldis-reading-widget.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "models/api.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "models/options.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "controller.php");
@@ -38,11 +39,19 @@ register_activation_hook( __FILE__, array($eldis, 'activate') );
 register_deactivation_hook( __FILE__, array($eldis, 'deactivate') );
 
 //add_action( 'widgets_init', create_function( '', 'return register_widget("WP_Eldis_Documents");' ) );
+add_action( 'widgets_init', create_function( '', 'return register_widget("WP_Eldis_Reading_Widget");' ) );
 add_action('admin_menu', array($eldis, 'admin_menu'));
 add_filter( 'the_content', array($eldis, 'the_content_filter') );
 
 add_action('admin_init', array($eldis, 'admin_init'));
 add_action('admin_notices', array($eldis, 'admin_notices'), 12);
+
+add_action('regioncats_add_form_fields', array($eldis, 'add_eldis_object_id_field'));
+add_action('regioncats_edit_form_fields', array($eldis, 'add_eldis_object_id_field'), 10, 2);
+
+//TO DO: Make this work with regioncats hook
+add_action( 'created_term',array($eldis, 'save_eldis_object_id_field'), 10, 3);
+add_action( 'edited_term', array($eldis, 'save_eldis_object_id_field'), 10, 3);
 
 class WP_Eldis {
     
@@ -63,6 +72,81 @@ class WP_Eldis {
         wp_register_style('wp-eldis', plugins_url('eldis.css', __FILE__));
     }
     
+	/**
+	 * Adds the eldis object id field to the regions term backend
+	 * 
+	 * @param object $term
+	 * @return void
+	 */
+	function add_eldis_object_id_field( $term) {
+		$object = '';
+		$object_id = $this->get_region_eldis_object_id( $term );
+		
+		if($term->parent == 0){
+			$object = 'regions';
+		} else {
+			$object = 'countries';
+		}
+		
+		$regionResults = $this->get_region_results($object);
+		$this->display_eldis_object_id_field($regionResults, $object_id);
+		
+	}
+	
+	/**
+	 * Returns a collection from all regions or countries
+	 * 
+	 * @param string $object
+	 * @return array
+	 * 
+	 */
+	function get_region_results($object){		
+		$url = 'openapi/eldis/get_all/'.$object.'/full/';
+		$api = new EldisAPI($this->options->get('api_key'),$url);
+		
+		//if no querystring is needed, set an empty one to prevent faulty results
+		$api->setQuery(array(
+    		'' => '',
+    	));
+		$api->setFormat('json');
+		$api->setExcludeFormat();		
+		
+		$response = $api->getResponse();
+		return $response->results;
+	}
+	
+	/**
+	 * Displays the added eldis field for regions
+	 */
+	function display_eldis_object_id_field($results, $term_object_id){
+		?>
+		<div class="form-field">
+		<label for="region_eldis_object_id">
+			Eldis Object ID
+		</label>
+		<select name="region_eldis_object_id">
+		<option>none</option>
+		<?php foreach($results AS $region): ?>
+		<option value="<?php echo $region->object_id; ?>" <?php echo $region->object_id == $term_object_id ? ' selected="selected"' : ''; ?>  ><?php echo $region->title; ?></option>
+		<?php endforeach; ?>
+		</select>
+		</div>		
+		<?php
+	}
+	
+	//Returns the object id for the given region
+	function get_region_eldis_object_id( $term ){
+		return get_metadata($term->taxonomy, $term->term_id, 'regioncats_eldis_object_id', true);
+	}
+	
+	//Saves the object id to wp_regioncatsmeta
+	function save_eldis_object_id_field($term_id, $tt_id = NULL, $taxonomy = NULL){
+		if ( isset( $_POST['region_eldis_object_id']) && $taxonomy == 'regioncats' ){
+			update_metadata($taxonomy, $term_id, 'regioncats_eldis_object_id', $_POST['region_eldis_object_id']);
+		}
+	}
+	
+	
     /**
      * Activate the plugin
      *
@@ -112,7 +196,7 @@ class WP_Eldis {
         $options_controller->handle_post_data();
         
         $pages = array();
-        $pages[] = add_menu_page('WP Eldis', 'WP Eldis', 'manage_options', 'wp_eldis', array($options_controller, 'admin_options'), FALSE, 30);
+        $pages[] = add_menu_page('WP Eldis', 'WP Eldis', 'manage_options', 'wp_eldis', array($options_controller, 'admin_options'), FALSE);
    
         if ($this->options->get('api_key')) {
             $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Test', 'manage_options', 'wp_eldis_test', array($options_controller, 'test_options'));

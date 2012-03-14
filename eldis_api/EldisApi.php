@@ -151,9 +151,10 @@ class EldisAPI {
      *
      * @param integer $offset where should we start in the response object
      * @param object $responseData
+     * @param integer $maxPages
      * @return false | object $response
      */
-    function getResponse($offset = 0, $responseData = NULL)
+    function getResponse($offset = 0, $responseData = NULL, $maxPages = NULL)
     {
         
         if (!$this->validateFormat()){ return FALSE; }
@@ -171,9 +172,9 @@ class EldisAPI {
             $count = 0; // This is used to avoid an infinate loop situation.
             while ($done != TRUE and $count < 999 ) {
                 $nextRequestUrl = $this->getNextRequestUrl($pageResponse);
-                
+				
                 //Are we out of stuff we need to fetch?
-                if ( ($pagesRead == $this->numPages) || empty($nextRequestUrl) || ($this->pageSize * ($currOffset + 1)) > $this->getMeta($pageResponse, 'total_results') )  {
+                if ( $pagesRead == $maxPages || empty($nextRequestUrl) || ($this->pageSize * ($currOffset + 1)) > $this->getMeta($pageResponse, 'total_results') )  {
                 
                     $done = TRUE;
                     

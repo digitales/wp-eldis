@@ -37,7 +37,7 @@ class WP_Eldis_Options_Controller extends WP_Eldis_Controller {
         if ( isset($postdata) and isset($postdata['object']) ){
             $object = $postdata['object'];
             
-            $url = 'openapi/'.$object.'/search/full';
+            $url = 'openapi/eldis/search/'.$object.'/full';
 
             $this->api = new EldisAPI( $this->options->get('api_key'), $url);
             
@@ -56,7 +56,7 @@ class WP_Eldis_Options_Controller extends WP_Eldis_Controller {
             if ( isset($statusCode) and $statusCode == 500 ){
                 
                 // Let's check if the none full search works.
-                $url = str_replace( 'search/full', 'search', $url);
+                $url = str_replace( '/full', '', $url);
                 
                 $this->api->setMethod( $url );
                 
