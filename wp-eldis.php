@@ -46,12 +46,12 @@ add_filter( 'the_content', array($eldis, 'the_content_filter') );
 add_action('admin_init', array($eldis, 'admin_init'));
 add_action('admin_notices', array($eldis, 'admin_notices'), 12);
 
-add_action('regioncats_add_form_fields', array($eldis, 'add_eldis_object_id_field'));
-add_action('regioncats_edit_form_fields', array($eldis, 'add_eldis_object_id_field'), 10, 2);
+add_action('regioncats_add_form_fields', array($eldis, 'add_eldis_object_field'));
+add_action('regioncats_edit_form_fields', array($eldis, 'add_eldis_object_field'), 10, 2);
 
 //TO DO: Make this work with regioncats hook
-add_action( 'created_term',array($eldis, 'save_eldis_object_id_field'), 10, 3);
-add_action( 'edited_term', array($eldis, 'save_eldis_object_id_field'), 10, 3);
+add_action( 'created_term',array($eldis, 'save_eldis_object_field'), 10, 3);
+add_action( 'edited_term', array($eldis, 'save_eldis_object_field'), 10, 3);
 
 class WP_Eldis {
     
@@ -78,18 +78,21 @@ class WP_Eldis {
 	 * @param object $term
 	 * @return void
 	 */
-	function add_eldis_object_id_field( $term) {
+	function add_eldis_object_field( $term) {
 		$object = '';
-		$object_id = $this->get_region_eldis_object_id( $term );
+		$eldis_object = $this->get_region_eldis_object( $term );
+		$object_type;
 		
 		if($term->parent == 0){
 			$object = 'regions';
+			$object_type = 'object_id';
 		} else {
 			$object = 'countries';
+			$object_type = 'iso_two_letter_code';
 		}
 		
 		$regionResults = $this->get_region_results($object);
-		$this->display_eldis_object_id_field($regionResults, $object_id);
+		$this->display_eldis_object_field( $regionResults, $object_type, $eldis_object );
 		
 	}
 	
@@ -118,16 +121,16 @@ class WP_Eldis {
 	/**
 	 * Displays the added eldis field for regions
 	 */
-	function display_eldis_object_id_field($results, $term_object_id){
+	function display_eldis_object_field( $results, $object_type, $eldis_object ){
 		?>
 		<div class="form-field">
-		<label for="region_eldis_object_id">
+		<label for="region_eldis_object">
 			Eldis Object ID
 		</label>
-		<select name="region_eldis_object_id">
+		<select name="region_eldis_object">
 		<option>none</option>
 		<?php foreach($results AS $region): ?>
-		<option value="<?php echo $region->object_id; ?>" <?php echo $region->object_id == $term_object_id ? ' selected="selected"' : ''; ?>  ><?php echo $region->title; ?></option>
+		<option value="<?php echo $region->$object_type; ?>" <?php echo $region->$object_type == $eldis_object ? ' selected="selected"' : ''; ?>  ><?php echo $region->title; ?></option>
 		<?php endforeach; ?>
 		</select>
 		</div>		
@@ -135,14 +138,14 @@ class WP_Eldis {
 	}
 	
 	//Returns the object id for the given region
-	function get_region_eldis_object_id( $term ){
-		return get_metadata($term->taxonomy, $term->term_id, 'regioncats_eldis_object_id', true);
+	function get_region_eldis_object( $term ){
+		return get_metadata($term->taxonomy, $term->term_id, 'regioncats_eldis_object', true);
 	}
 	
 	//Saves the object id to wp_regioncatsmeta
-	function save_eldis_object_id_field($term_id, $tt_id = NULL, $taxonomy = NULL){
-		if ( isset( $_POST['region_eldis_object_id']) && $taxonomy == 'regioncats' ){
-			update_metadata($taxonomy, $term_id, 'regioncats_eldis_object_id', $_POST['region_eldis_object_id']);
+	function save_eldis_object_field($term_id, $tt_id = NULL, $taxonomy = NULL){
+		if ( isset( $_POST['region_eldis_object']) && $taxonomy == 'regioncats' ){
+			update_metadata($taxonomy, $term_id, 'regioncats_eldis_object', $_POST['region_eldis_object']);
 		}
 	}
 	
