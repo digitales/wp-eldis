@@ -4,7 +4,7 @@ Plugin Name: WP Eldis
 Plugin URI: http://headshift.com/
 Description: Allows searches to be performed on the Eldis API
 Version: 1.0
-Author: Ross Tweedie
+Author: Ross Tweedie, Pavlos Syngelakis
 Author URI: http://headshift.com/
 
 The code has been influenced by the WP Meetup plugin ( http://nuancedmedia.com/wordpress-meetup-plugin/ ) by Nuanced Media (http://nuancedmedia.com/)
@@ -49,9 +49,15 @@ add_action('admin_notices', array($eldis, 'admin_notices'), 12);
 add_action('regioncats_add_form_fields', array($eldis, 'add_eldis_object_field'));
 add_action('regioncats_edit_form_fields', array($eldis, 'add_eldis_object_field'), 10, 2);
 
-//TO DO: Make this work with regioncats hook
-add_action( 'created_term',array($eldis, 'save_eldis_object_field'), 10, 3);
+add_action('themecats_add_form_fields', array($eldis, 'add_eldis_object_field'));
+add_action('themecats_edit_form_fields', array($eldis, 'add_eldis_object_field'), 10, 2);
+
+add_action( 'created_term', array($eldis, 'save_eldis_object_field'), 10, 3);
 add_action( 'edited_term', array($eldis, 'save_eldis_object_field'), 10, 3);
+
+add_action( 'admin_enqueue_scripts', array( $eldis, 'add_eldis_theme_script'), 10, 1 );
+
+add_action( 'wp_ajax_theme_results', array( $eldis, 'theme_results_callback'));
 
 class WP_Eldis {
     
@@ -60,8 +66,7 @@ class WP_Eldis {
     public $feedback = array('error' => array(), 'message' => array());
     public $plugin_url;
 
-    function __construct() {
-	
+    function __construct() {	
         $this->dir = WP_PLUGIN_DIR . "/wp-eldis/";
         $this->plugin_url = plugins_url('/', __FILE__);
         $this->admin_page_url = admin_url("admin.php?page=wp_eldis");
@@ -79,21 +84,30 @@ class WP_Eldis {
 	 * @return void
 	 */
 	function add_eldis_object_field( $term) {
+		$this->setAPI();
+		
 		$object = '';
-		$eldis_object = $this->get_region_eldis_object( $term );
+		$eldis_object = $this->get_eldis_object( $term );
 		$object_type;
 		
-		if($term->parent == 0){
-			$object = 'regions';
-			$object_type = 'object_id';
-		} else {
-			$object = 'countries';
-			$object_type = 'iso_two_letter_code';
+		switch($term->taxonomy){
+			case 'themecats':
+					$this->display_theme_eldis_object_field();
+				break;
+			case 'regioncats':
+					if($term->parent == 0){
+						$object = 'regions';
+						$object_type = 'object_id';
+					} else {
+						$object = 'countries';
+						$object_type = 'iso_two_letter_code';
+					}
+					$regionResults = $this->get_region_results($object);
+					$this->display_region_eldis_object_field( $regionResults, $object_type, $eldis_object );
+				break;
+			default:
+				break;
 		}
-		
-		$regionResults = $this->get_region_results($object);
-		$this->display_eldis_object_field( $regionResults, $object_type, $eldis_object );
-		
 	}
 	
 	/**
@@ -105,29 +119,22 @@ class WP_Eldis {
 	 */
 	function get_region_results($object){		
 		$url = 'openapi/eldis/get_all/'.$object.'/full/';
-		$api = new EldisAPI($this->options->get('api_key'),$url);
+		$this->api->setMethod($url);
 		
-		//if no querystring is needed, set an empty one to prevent faulty results
-		$api->setQuery(array(
-    		'' => '',
-    	));
-		$api->setFormat('json');
-		$api->setExcludeFormat();		
-		
-		$response = $api->getResponse();
+		$response = $this->api->getResponse();
 		return $response->results;
 	}
 	
 	/**
 	 * Displays the added eldis field for regions
 	 */
-	function display_eldis_object_field( $results, $object_type, $eldis_object ){
+	function display_region_eldis_object_field( $results, $object_type, $eldis_object ){
 		?>
 		<div class="form-field">
-		<label for="region_eldis_object">
+		<label for="regioncats_eldis_object">
 			Eldis Object ID
 		</label>
-		<select name="region_eldis_object">
+		<select name="regioncats_eldis_object">
 		<option>none</option>
 		<?php foreach($results AS $region): ?>
 		<option value="<?php echo $region->$object_type; ?>" <?php echo $region->$object_type == $eldis_object ? ' selected="selected"' : ''; ?>  ><?php echo $region->title; ?></option>
@@ -137,18 +144,71 @@ class WP_Eldis {
 		<?php
 	}
 	
-	//Returns the object id for the given region
-	function get_region_eldis_object( $term ){
-		return get_metadata($term->taxonomy, $term->term_id, 'regioncats_eldis_object', true);
+	function display_theme_eldis_object_field(){
+		?>
+		<div class="form-field">
+		<label for="themecats_eldis_object">
+			Eldis Object ID
+		</label>
+		<input type="text" value="Enter keyword here." id="keywords" />
+		<input type="submit" value="search" class="button-primary" id="theme_results_button"/>
+		<fieldset id="theme_results">
+		</fieldset>
+		</div>		
+		<?php
 	}
 	
-	//Saves the object id to wp_regioncatsmeta
-	function save_eldis_object_field($term_id, $tt_id = NULL, $taxonomy = NULL){
-		if ( isset( $_POST['region_eldis_object']) && $taxonomy == 'regioncats' ){
-			update_metadata($taxonomy, $term_id, 'regioncats_eldis_object', $_POST['region_eldis_object']);
+	function add_eldis_theme_script($hook){
+		if($hook == 'edit-tags.php'){
+			wp_enqueue_script( 'wp-eldis-theme-results',plugins_url() . '/' . basename(dirname(__FILE__)) .'/js/wp-eldis-theme-results.js', array('jquery'), false, true );
+			wp_localize_script( 'wp-eldis-theme-results', 'wpajax', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
+		}		
+	}
+	
+	function theme_results_callback(){
+		$keywords = !empty($_POST['keywords']) ? $_POST['keywords'] : null;
+		$this->setAPI();
+		$url = 'openapi/eldis/search/themes/';
+		$this->api->setMethod($url);
+		$this->api->setQuery(array(
+    		'q' => $keywords,
+    	));
+		$response = $this->api->getResponse();
+		$this->print_theme_results($response->results);
+		die;
+	}
+	
+	function print_theme_results($results){
+		foreach($results as $result){
+			echo '<label><input type="radio" name="themecats_eldis_object" value="'.$result->object_id.'" />'.$result->title.'</label>';
 		}
 	}
 	
+	//Returns the object id for the given taxonomy term
+	function get_eldis_object( $term ){
+		return get_metadata($term->taxonomy, $term->term_id, $term->taxonomy.'_eldis_object', true);
+	}
+	
+	//Saves the object id to the respectable taxonomy meta table
+	function save_eldis_object_field($term_id, $tt_id = NULL, $taxonomy = NULL){
+		if ( isset( $_POST[$taxonomy.'_eldis_object']) && $taxonomy){
+			update_metadata($taxonomy, $term_id, $taxonomy.'_eldis_object', $_POST[$taxonomy.'_eldis_object']);
+		}
+	}
+	
+	function setAPI(){
+		if(!isset($this->api)){
+			$this->import_model('options');
+			$this->api = new EldisAPI( $this->options->get('api_key') );
+		}
+		
+		//if no querystring is needed, set an empty one to prevent faulty results
+		$this->api->setQuery(array(
+    		'' => '',
+    	));
+		$this->api->setFormat('json');
+		$this->api->setExcludeFormat();
+	}
 	
     /**
      * Activate the plugin

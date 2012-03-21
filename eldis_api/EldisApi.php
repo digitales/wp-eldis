@@ -36,7 +36,7 @@ class EldisAPI {
      * @param string $method
      * @return void.
      */
-    function __construct($apiKey, $method)
+    function __construct($apiKey, $method = NULL)
     {        
         // Get the config file
         require_once(dirname(__FILE__) . '/config.php');
