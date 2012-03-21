@@ -70,6 +70,7 @@ class WP_Eldis {
         $this->dir = WP_PLUGIN_DIR . "/wp-eldis/";
         $this->plugin_url = plugins_url('/', __FILE__);
         $this->admin_page_url = admin_url("admin.php?page=wp_eldis");
+				self::init();
     }
     
     function init(){
@@ -130,7 +131,7 @@ class WP_Eldis {
 	 */
 	function display_region_eldis_object_field( $results, $object_type, $eldis_object ){
 		?>
-		<div class="form-field">
+		<div class="eldis-form-field">
 		<label for="regioncats_eldis_object">
 			Eldis Object ID
 		</label>
@@ -144,13 +145,13 @@ class WP_Eldis {
 		<?php
 	}
 	
-	function display_theme_eldis_object_field(){
+	function display_theme_eldis_object_field( $eldis_object ){
 		?>
-		<div class="form-field">
+		<div class="eldis-form-field">
 		<label for="themecats_eldis_object">
 			Eldis Object ID
 		</label>
-		<input type="text" value="Enter keyword here." id="keywords" />
+		<input type="text" value="<?php echo $eldis_object ? $eldis_object : 'Enter keyword here.' ?>" id="keywords" />
 		<input type="submit" value="search" class="button-primary" id="theme_results_button"/>
 		<fieldset id="theme_results">
 		</fieldset>
@@ -166,21 +167,31 @@ class WP_Eldis {
 	}
 	
 	function theme_results_callback(){
-		$keywords = !empty($_POST['keywords']) ? $_POST['keywords'] : null;
-		$this->setAPI();
-		$url = 'openapi/eldis/search/themes/';
-		$this->api->setMethod($url);
-		$this->api->setQuery(array(
-    		'q' => $keywords,
-    	));
-		$response = $this->api->getResponse();
-		$this->print_theme_results($response->results);
+		$results = null;
+		$keywords = !empty($_POST['keywords']) && isset($_POST['keywords']) ? explode(' ',$_POST['keywords']) : null;
+		if($keywords && !in_array('',$keywords)){
+			$this->setAPI();
+			$url = 'openapi/eldis/search/themes/';
+			$this->api->setMethod($url);
+			$this->api->setQuery(array(
+	    		'q' => implode(' ',$keywords),
+	    	));
+			$response = $this->api->getResponse();
+			$results = $response->results;
+		}
+		
+		$this->print_theme_results($results);
 		die;
 	}
 	
 	function print_theme_results($results){
-		foreach($results as $result){
-			echo '<label><input type="radio" name="themecats_eldis_object" value="'.$result->object_id.'" />'.$result->title.'</label>';
+		if(isset($results) && !empty($results)){
+			echo '<legend>Results</legend>';
+			foreach($results as $result){
+				echo '<label><input type="radio" name="themecats_eldis_object" value="'.$result->object_id.'" />&nbsp;'.$result->title.'</label><br />';
+			}
+		} else {
+			echo 'Sorry no matching results were found.';
 		}
 	}
 	
@@ -206,6 +217,7 @@ class WP_Eldis {
 		$this->api->setQuery(array(
     		'' => '',
     	));
+
 		$this->api->setFormat('json');
 		$this->api->setExcludeFormat();
 	}
