@@ -14,13 +14,10 @@ class WP_Eldis_Reading_Widget extends WP_Widget {
 		
     function __construct()
     {	
-	$import = new WP_Eldis_Import();
-	$import->initiate_import();
-		$this->apiKey = $this->get_api_key();
-		$this->url = 'openapi/eldis/search/documents/full';
-		$this->api = new EldisAPI($this->apiKey,$this->url);
-		
-        parent::WP_Widget( false, $name = 'WP Eldis Reading');
+			$this->apiKey = $this->get_api_key();
+			$this->url = 'openapi/eldis/search/documents/full';
+			$this->api = new EldisAPI($this->apiKey,$this->url);
+      parent::WP_Widget( false, $name = 'WP Eldis Reading');
     }
     
 
