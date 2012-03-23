@@ -28,10 +28,12 @@ Copyright 2011  Headshift
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "eldis_api/EldisApi.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "model.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "wp-eldis-reading-widget.php");
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . "wp-eldis-import-cron.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "models/api.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "models/options.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "controller.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "controllers/options_controller.php");
+
 
 $eldis = new WP_Eldis();
 
@@ -93,7 +95,7 @@ class WP_Eldis {
 		
 		switch($term->taxonomy){
 			case 'themecats':
-					$this->display_theme_eldis_object_field();
+					$this->display_theme_eldis_object_field($eldis_object);
 				break;
 			case 'regioncats':
 					if($term->parent == 0){
@@ -128,6 +130,8 @@ class WP_Eldis {
 	
 	/**
 	 * Displays the added eldis field for regions
+	 * 
+	 * @return void
 	 */
 	function display_region_eldis_object_field( $results, $object_type, $eldis_object ){
 		?>
@@ -145,6 +149,11 @@ class WP_Eldis {
 		<?php
 	}
 	
+	/**
+	 * Displays the added eldis field for themes
+	 * 
+	 * @return void
+	 */
 	function display_theme_eldis_object_field( $eldis_object ){
 		?>
 		<div class="eldis-form-field">
@@ -159,6 +168,11 @@ class WP_Eldis {
 		<?php
 	}
 	
+	/**
+	 * Adds Javascript needed for the theme eldis object field
+	 * 
+	 * @return void
+	 */
 	function add_eldis_theme_script($hook){
 		if($hook == 'edit-tags.php'){
 			wp_enqueue_script( 'wp-eldis-theme-results',plugins_url() . '/' . basename(dirname(__FILE__)) .'/js/wp-eldis-theme-results.js', array('jquery'), false, true );
@@ -166,6 +180,11 @@ class WP_Eldis {
 		}		
 	}
 	
+	/**
+	 * Callback function for the theme eldis object id search
+	 * 
+	 * @return void
+	 */
 	function theme_results_callback(){
 		$results = null;
 		$keywords = !empty($_POST['keywords']) && isset($_POST['keywords']) ? explode(' ',$_POST['keywords']) : null;
@@ -184,6 +203,11 @@ class WP_Eldis {
 		die;
 	}
 	
+	/**
+	 * Displays the found results for the theme eldis object search
+	 * 
+	 * @return void
+	 */
 	function print_theme_results($results){
 		if(isset($results) && !empty($results)){
 			echo '<legend>Results</legend>';
@@ -195,18 +219,37 @@ class WP_Eldis {
 		}
 	}
 	
-	//Returns the object id for the given taxonomy term
+	/**
+	 * Retrieves the eldis object id of the given term
+	 * 
+	 * @param object $term
+	 * @return string
+	 */
 	function get_eldis_object( $term ){
 		return get_metadata($term->taxonomy, $term->term_id, $term->taxonomy.'_eldis_object', true);
 	}
 	
-	//Saves the object id to the respectable taxonomy meta table
+	/**
+	 * Saves the eldis object id set in the term edit page
+	 * 
+	 * @param string $term_id
+	 * @param string $tt_id
+	 * @param string $taxonomy
+	 * @return void
+	 */
 	function save_eldis_object_field($term_id, $tt_id = NULL, $taxonomy = NULL){
 		if ( isset( $_POST[$taxonomy.'_eldis_object']) && $taxonomy){
 			update_metadata($taxonomy, $term_id, $taxonomy.'_eldis_object', $_POST[$taxonomy.'_eldis_object']);
 		}
 	}
 	
+	/**
+	 * Instantiates the api object when and imports the options model if not set
+	 * Sets an empty api query to prevent failures
+	 * Sets desirable configuration for the api
+	 * 
+	 * @return void
+	 */
 	function setAPI(){
 		if(!isset($this->api)){
 			$this->import_model('options');

@@ -4,7 +4,7 @@
  *
  * Please note that this widget is not stand-alone, it requires the CDKN_Xili_Post class.
  */
-
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . "wp-eldis-import-cron.php");
 class WP_Eldis_Reading_Widget extends WP_Widget {
 	
 	protected $apiKey,
@@ -13,7 +13,9 @@ class WP_Eldis_Reading_Widget extends WP_Widget {
 		$max_display;
 		
     function __construct()
-    {
+    {	
+	$import = new WP_Eldis_Import();
+	$import->initiate_import();
 		$this->apiKey = $this->get_api_key();
 		$this->url = 'openapi/eldis/search/documents/full';
 		$this->api = new EldisAPI($this->apiKey,$this->url);
