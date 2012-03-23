@@ -25,15 +25,15 @@ class WP_Eldis_Import extends WP_Eldis {
 	function initiate_import(){
 		$object_ids = $this->get_region_object_ids();
 		$object_ids['theme'] = $this->get_theme_object_ids();
-		$this->totalterms = count($object_ids);
+		$this->totalterms = count( $object_ids );
 		$this->resources = $this->get_resource_object_ids();
 		
 		$this->setAPI();
 		$url = 'openapi/eldis/search/documents/full';
-		$this->api->setMethod($url);
-		$this->api->setPageSize($this->numberdocs);
+		$this->api->setMethod( $url );
+		$this->api->setPageSize( $this->numberdocs );
 		
-		$this->import($object_ids);
+		$this->import( $object_ids );
 		
 	}
 	
@@ -44,16 +44,16 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @return void
 	 */
 	private function import($object_ids){
-		foreach($object_ids as $object_type => $object_type_ids){
-			foreach($object_type_ids as $object_id){
-				$this->api->setQuery(array(
+		foreach( $object_ids as $object_type => $object_type_ids ){
+			foreach( $object_type_ids as $object_id ){
+				$this->api->setQuery( array(
 	        		$object_type => $object_id,
 	        	));
-				$response = $this->api->getResponse(0,null,1);
-				foreach($response->results as $resource){
-					if( !in_array( $resource->object_id, $this->resources) ){
+				$response = $this->api->getResponse( 0, null, 1);
+				foreach( $response->results as $resource ){
+					if( !in_array( $resource->object_id, $this->resources ) ){
 						$this->resources[] = $resource->object_id;
-						$this->add_new_resource($resource);						
+						$this->add_new_resource( $resource );						
 					}
 				}
 			}
@@ -66,9 +66,19 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @param Object $resource
 	 * @return void
 	 */
-	function add_new_resource($resource){
-		//here we want to wp_insert the the resource
-		var_dump($resource);
+	function add_new_resource( $resource ){
+		// $post = array(
+		// 		'post_author' =>,
+		// 		'post_category' =>,
+		// 		'post_content' =>,
+		// 		'post-date' =>,
+		// 		'post_date_gmt' =>,
+		// 		'post_status' => 'publish',
+		// 		'post_title' => $resource->title,
+		// 		'post_type' => 'resource',
+		// 		
+		// 	);
+		//here we want to wp_insert the resource
 	}
 
 	/**
@@ -85,7 +95,7 @@ class WP_Eldis_Import extends WP_Eldis {
 			$theme_object_ids[] = $object_id;
 			}
 		}		
-		return array_unique($theme_object_ids);
+		return array_unique( $theme_object_ids );
 	}	
 	
 	/**
@@ -107,7 +117,7 @@ class WP_Eldis_Import extends WP_Eldis {
 				}
 			}
 		}
-		return array( 'country' => array_unique($country_object_ids), 'region' => array_unique($region_object_ids) );
+		return array( 'country' => array_unique( $country_object_ids ), 'region' => array_unique( $region_object_ids ) );
 	}
 	
 	/**
@@ -116,14 +126,14 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @return array
 	 */
 	private function get_resource_object_ids(){
-		$resources = get_posts(array('numberposts' => $this->numberdocs*$this->totalterms, 'post_type' => 'resource'));
+		$resources = get_posts(array( 'numberposts' => $this->numberdocs*$this->totalterms, 'post_type' => 'resource' ));
 		$resource_object_ids = array();
-		foreach($resources as $resource){
-			$object_id = get_post_meta($resource->ID, 'eldis_object_id', true);
-			if($object_id){
+		foreach( $resources as $resource ){
+			$object_id = get_post_meta( $resource->ID, 'eldis_object_id', true );
+			if( $object_id ){
 				$resource_object_ids[] = $object_id;
 			}
 		}
-		return array_unique($resource_object_ids);
+		return array_unique( $resource_object_ids );
 	}
 }
