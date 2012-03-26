@@ -112,6 +112,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	    'meta' => array(
 	      'eldis_real_author' => $resource_author,
 	      'eldis_uri' => $resource->website_url,
+	      'eldis_object_id' => $resource->object_id,
 	    )
 	  );
 	  
@@ -127,18 +128,30 @@ class WP_Eldis_Import extends WP_Eldis {
 	    return $resource_post;
 	  }
 	  
-	  // Insert the post into the db
-	  $resource_id = wp_insert_post($resource_post['post'], TRUE);
-	  if (!is_int($resource_id)) {
-	    // WP_Error has occurred :(
-	    var_dump($resource_id);
+	  // Check if post exists in db
+	  $query = new WP_Query(array(
+	      'author' => 46,
+	      'meta_value' => 'eldis_object_id',
+	      'meta_key' => $resource->object_id,
+	    )
+	  );
+	  if (!count($query->get_posts())) {
+	    // Insert the post into the db
+	    $resource_id = wp_insert_post($resource_post['post'], TRUE);
+  	  if (!is_int($resource_id)) {
+  	    // WP_Error has occurred :(
+  	    var_dump($resource_id);
+  	  } else {
+  	    // Success!
+  	    // Add post meta
+  	    foreach ($resource_post['meta'] as $meta_key => $meta_value) {
+          add_post_meta($resource_id, $meta_key, $meta_value);
+  	    }
+  	  }
 	  } else {
-	    // Success!
-	    // Add post meta
-	    foreach ($resource_post['meta'] as $meta_key => $meta_value) {
-        add_post_meta($resource_id, $meta_key, $meta_value);
-	    }
+	    // Resource post already exists
 	  }
+	  
 	}
 
 	/**
