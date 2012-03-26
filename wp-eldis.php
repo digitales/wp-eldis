@@ -350,7 +350,9 @@ class WP_Eldis {
         $result = array();
         
         if (isset($_POST['do-eldis-import'])) {
-          WP_Eldis_Import::start_import();
+          $imported_count = WP_Eldis_Import::start_import();
+          
+          $result['imported_count'] = $imported_count;
         }
         
         if (isset($_POST['clear-eldis-import'])) {
@@ -363,11 +365,13 @@ class WP_Eldis {
           );
           $posts_result = new WP_Query();
           $posts_result = $posts_result->query($posts_query);
+          $deleted_count = count($posts_result);
           foreach ($posts_result as $resource_post) {
             wp_delete_post($resource_post->ID, true);
           }
           
           $result['deleted_posts'] = true;
+          $result['deleted_count'] = $deleted_count;
         }
         
         echo $this->render('import-dryrun.php', $result);

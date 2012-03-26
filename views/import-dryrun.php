@@ -18,8 +18,23 @@
       
       <?php if (isset($deleted_posts) && $deleted_posts): ?>
         <p>
-          Deleted all resource posts of the author <strong>eldiscommunity</strong>.
+          Deleted all (<?php echo $deleted_count ?>) resource posts of the author <strong>eldiscommunity</strong> we could remove.
         </p>
+      <?php endif; ?>
+      
+      <?php if (isset($imported_count)): ?>
+        
+        <?php if ($imported_count === 0): ?>
+          <p>
+            No resource posts have been imported. <br/>
+            Either all posts have been imported already, or no terms have been linked to Eldis Objects.
+          </p>
+        <?php else: ?>
+          <p>
+            Imported <?php echo $imported_count ?> resource posts.
+          </p>
+        <?php endif;  ?>
+        
       <?php endif; ?>
       
       <form action="<?php echo admin_url('admin.php?page=wp_eldis_test'); ?>" method="post" accept-charset="utf-8">

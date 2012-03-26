@@ -141,6 +141,8 @@ class WP_Eldis_Import extends WP_Eldis {
   	  if (!is_int($resource_id)) {
   	    // WP_Error has occurred :(
   	    var_dump($resource_id);
+  	    // Couldn't be inserted
+  	    return false;
   	  } else {
   	    // Success!
   	    // Add post meta
@@ -148,10 +150,12 @@ class WP_Eldis_Import extends WP_Eldis {
           add_post_meta($resource_id, $meta_key, $meta_value);
   	    }
   	  }
+  	  // Inserted
+  	  return true;
 	  } else {
 	    // Resource post already exists
 	  }
-	  
+	  return false;
 	}
 
 	/**
