@@ -16,11 +16,20 @@
         </pre>
       <?php endif; ?>
       
+      <?php if (isset($deleted_posts) && $deleted_posts): ?>
+        <p>
+          Deleted all resource posts of the author <strong>eldiscommunity</strong>.
+        </p>
+      <?php endif; ?>
+      
       <form action="<?php echo admin_url('admin.php?page=wp_eldis_test'); ?>" method="post" accept-charset="utf-8">
             <h3>Test the Importing of Eldis posts</h3>
             <input type="submit" name="test-eldis-import" value="Test Import Eldis">
             
             <h3>Clear all the Eldis posts</h3>
+            <p>
+              Warning: this will delete <em>all</em> resource posts of the author <strong>eldiscommunity</strong>.
+            </p>
             <input type="submit" name="clear-eldis-import" value="Clear imported Eldis posts">
             
             <h3>Import Eldis posts</h3>

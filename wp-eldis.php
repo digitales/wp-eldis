@@ -347,11 +347,30 @@ class WP_Eldis {
           'import_dry_run' => $import_dry_run
         ));
       } else {
-        if ($_POST['do-eldis-import']) {
+        $result = array();
+        
+        if (isset($_POST['do-eldis-import'])) {
           WP_Eldis_Import::start_import();
         }
         
-        echo $this->render('import-dryrun.php');
+        if (isset($_POST['clear-eldis-import'])) {
+          // Get all posts from eldiscommunity user (id: 46)
+          // and delete those posts
+          $posts_query = array(
+            'author' => 46,
+            'post_type' => 'resource',
+            'posts_per_page' => -1,
+          );
+          $posts_result = new WP_Query();
+          $posts_result = $posts_result->query($posts_query);
+          foreach ($posts_result as $resource_post) {
+            wp_delete_post($resource_post->ID, true);
+          }
+          
+          $result['deleted_posts'] = true;
+        }
+        
+        echo $this->render('import-dryrun.php', $result);
       }
       
     }
