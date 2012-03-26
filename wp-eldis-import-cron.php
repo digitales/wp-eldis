@@ -25,7 +25,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @author Maarten Jacobs
 	 */
 	static function start_import($dry_run = FALSE) {
-	  $handler = new static();
+	  $handler = new WP_Eldis_Import();
 	  $results = $handler->initiate_import($dry_run);
 	  
 	  if ($dry_run) {
