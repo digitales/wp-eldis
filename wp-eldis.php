@@ -328,6 +328,17 @@ class WP_Eldis {
         //}
     }
     
+    /**
+     * Handles the form submit and outputting of the "import and test" page.
+     * -- On Import, we import all the Documents related to the Regions and Themes which have 
+     *    been linked to an Eldis object id.
+     * -- On Test Import (i.e. Dry Run), we create the associative arrays (post and meta) necessary for 
+     *    the import, but we var_dump them. This should and has been disabled for production purposes.
+     * -- On Clear Resources, we delete ALL the posts of the Eldis user (ID: 46). This has been disabled
+     *    for in case, the client accidentally deletes all posts.
+     *
+     * @author Maarten Jacobs
+     */
     function test_page_submit() {
       
       // Handle testing of Eldis options
