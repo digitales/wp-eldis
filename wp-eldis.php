@@ -320,7 +320,7 @@ class WP_Eldis {
         $pages[] = add_menu_page('WP Eldis', 'WP Eldis', 'manage_options', 'wp_eldis', array($options_controller, 'admin_options'), FALSE);
    
         if ($this->options->get('api_key')) {
-            $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Test', 'manage_options', 'wp_eldis_test', array($this, 'test_page_submit'));
+            $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Import and Test', 'manage_options', 'wp_eldis_test', array($this, 'test_page_submit'));
         }
 
         //foreach ($pages as $page){
@@ -350,7 +350,7 @@ class WP_Eldis {
         $result = array();
         
         if (isset($_POST['do-eldis-import'])) {
-          $imported_count = WP_Eldis_Import::start_import();
+          $imported_count = count(WP_Eldis_Import::start_import());
           
           $result['imported_count'] = $imported_count;
         }
