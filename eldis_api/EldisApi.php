@@ -157,9 +157,13 @@ class EldisAPI {
     function getResponse($offset = 0, $responseData = NULL, $maxPages = NULL)
     {
         
-        if (!$this->validateFormat()){ return FALSE; }
+        if (!$this->validateFormat()) { 
+          return FALSE; 
+        }
         
-        if (!isset($responseData)) { $responseData = $this->request($offset); }
+        if (!isset($responseData)) { 
+          $responseData = $this->request($offset); 
+        }
         
         if ($pageResponse = $response = $this->parseResponse($responseData)) {
             
@@ -170,17 +174,14 @@ class EldisAPI {
             $done = FALSE;
             
             $count = 0; // This is used to avoid an infinate loop situation.
-            while ($done != TRUE and $count < 999 ) {
+            while ($count < 999 ) {
                 $nextRequestUrl = $this->getNextRequestUrl($pageResponse);
 				
                 //Are we out of stuff we need to fetch?
                 if ( $pagesRead == $maxPages || empty($nextRequestUrl) || ($this->pageSize * ($currOffset + 1)) > $this->getMeta($pageResponse, 'total_results') )  {
-                
-                    $done = TRUE;
-                    
                     $count++;
                     
-                    continue;
+                    break;
                 } else {
                     
                     // Run through another set of results.
@@ -212,8 +213,7 @@ class EldisAPI {
      * @param integer $offset
      * @return false | object
      */
-    function getRawResponse( $offset = 0 )
-    {
+    function getRawResponse( $offset = 0 ) {
         return (!$this->validateFormat())? FALSE : $this->request($offset) ;
     }
 
@@ -225,8 +225,7 @@ class EldisAPI {
      *
      * @return false | string
      */ 
-    protected function getMeta($response, $field)
-    {
+    protected function getMeta($response, $field) {
         switch($this->format) {
             case 'json':
             case 'json-alt':
@@ -253,8 +252,7 @@ class EldisAPI {
      * @param string $direction
      * @return string
      */
-    protected function getPagingRequest($response, $direction = 'next_page')
-    {
+    protected function getPagingRequest($response, $direction = 'next_page') {
         return $this->getMeta($response, $direction);
     }
 

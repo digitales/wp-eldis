@@ -43,7 +43,7 @@ register_deactivation_hook( __FILE__, array($eldis, 'deactivate') );
 //add_action( 'widgets_init', create_function( '', 'return register_widget("WP_Eldis_Documents");' ) );
 add_action( 'widgets_init', create_function( '', 'return register_widget("WP_Eldis_Reading_Widget");' ) );
 add_action('admin_menu', array($eldis, 'admin_menu'));
-add_filter( 'the_content', array($eldis, 'the_content_filter') );
+// add_filter( 'the_content', array($eldis, 'the_content_filter') );
 
 add_action('admin_init', array($eldis, 'admin_init'));
 add_action('admin_notices', array($eldis, 'admin_notices'), 12);
@@ -59,7 +59,7 @@ add_action( 'edited_term', array($eldis, 'save_eldis_object_field'), 10, 3);
 
 add_action( 'admin_enqueue_scripts', array( $eldis, 'add_eldis_theme_script'), 10, 1 );
 
-add_action( 'wp_ajax_theme_results', array( $eldis, 'theme_results_callback'));
+add_action( 'wp_ajax_theme_results', array( $eldis, 'theme_results_callback') );
 
 class WP_Eldis {
     
@@ -161,7 +161,7 @@ class WP_Eldis {
 			Eldis Object ID
 		</label>
 		<input type="text" value="<?php echo $eldis_object ? $eldis_object : 'Enter keyword here.' ?>" id="keywords" />
-		<input type="submit" value="search" class="button-primary" id="theme_results_button"/>
+		<input type="submit" name="search-eldis-objects" value="search" class="button-primary" id="theme_results_button"/>
 		<fieldset id="theme_results">
 		</fieldset>
 		</div>		
@@ -273,7 +273,10 @@ class WP_Eldis {
      */
     function activate()
     {
-    	// @todo We need to create a cache folder and assign the relavent permissions.
+    	// @todo We need to create a cache folder and assign the relevant permissions.
+    	
+    	// Schedule caching event daily
+    	wp_schedule_event(time(), 'daily', array('WP_Eldis_Import', 'eldis_cache_objects'));
     }
     
     /**
@@ -317,12 +320,40 @@ class WP_Eldis {
         $pages[] = add_menu_page('WP Eldis', 'WP Eldis', 'manage_options', 'wp_eldis', array($options_controller, 'admin_options'), FALSE);
    
         if ($this->options->get('api_key')) {
-            $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Test', 'manage_options', 'wp_eldis_test', array($options_controller, 'test_options'));
+            $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Test', 'manage_options', 'wp_eldis_test', array($this, 'test_page_submit'));
         }
 
         //foreach ($pages as $page){
         //    add_action('admin_print_styles-' . $page, array($this, 'admin_styles'));
         //}
+    }
+    
+    function test_page_submit() {
+      
+      // Handle testing of Eldis options
+      if (isset($_POST['test-eldis-options'])) {
+        $options_controller = new WP_Eldis_Options_Controller();
+        $options_controller->handle_post_data();
+        $options_controller->test_options();
+      }
+      
+      // Handle testing of Eldis import script
+      if (isset($_POST['test-eldis-import'])) {
+        require_once __DIR__ . '/wp-eldis-import-cron.php';
+        // TRUE for testing purposes
+        $import_dry_run = WP_Eldis_Import::start_import(TRUE);
+        
+        echo $this->render('import-dryrun.php', array(
+          'import_dry_run' => $import_dry_run
+        ));
+      } else {
+        if ($_POST['do-eldis-import']) {
+          WP_Eldis_Import::start_import();
+        }
+        
+        echo $this->render('import-dryrun.php');
+      }
+      
     }
    
     /**
