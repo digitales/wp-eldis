@@ -160,7 +160,7 @@ class WP_Eldis {
 		<label for="themecats_eldis_object">
 			Eldis Object ID
 		</label>
-		<input type="text" value="<?php echo $eldis_object ? $eldis_object : 'Enter keyword here.' ?>" id="keywords" />
+		<input type="text" <?php echo $eldis_object ? 'value='.$eldis_object : 'placeholder="Enter keyword here."' ?> id="keywords" />
 		<input type="submit" value="search" class="button-primary" id="theme_results_button"/>
 		<fieldset id="theme_results">
 		</fieldset>
@@ -190,17 +190,54 @@ class WP_Eldis {
 		$keywords = !empty($_POST['keywords']) && isset($_POST['keywords']) ? explode(' ',$_POST['keywords']) : null;
 		if($keywords && !in_array('',$keywords)){
 			$this->setAPI();
-			$url = 'openapi/eldis/search/themes/';
+			$url = 'openapi/eldis/search/themes/full';
 			$this->api->setMethod($url);
 			$this->api->setQuery(array(
 	    		'q' => implode(' ',$keywords),
 	    	));
 			$response = $this->api->getResponse();
 			$results = $response->results;
-		}
-		
-		$this->print_theme_results($results);
+			usort($results, 'sort_results_by_cat_level');
+		}		
+		$structured_array = $this->populate_array_from_results($results);		
+		$this->print_theme_results($structured_array);
 		die;
+	}
+	
+	function populate_array_from_results($results){
+	  $all = array();
+	  foreach($results as $result){
+		  $cats = explode( '.', $result->category_path );
+		  $this->fill_array( $all, $cats, $result->object_id);
+	  }
+	  //echo '<pre>'.print_r($all,1).'</pre>';
+	  return $all;
+	}
+	
+	protected function fill_array(&$all,$cats,$id){
+	  $current = array_shift($cats);
+    if(isset($all[$current])){      
+	    $this->fill_array($all[$current],$cats,$id);
+	  } else {
+	    if(!empty($cats)){
+	      $this->fill_array($all[$current],$cats,$id);
+	    } else {
+        $all[$current]['object_id'] = $id;
+	    }
+	  }
+	}
+	
+	protected function sort_results_by_cat_level($result, $result2){
+	  $catlvl = $result->cat_level;
+	  $catlvl2 = $result2->cat_level;
+	  
+	  if ( $catlvl <= $catlvl2 ) {
+      if ( $catlvl == $catlvl2) {
+        return 0;
+      }
+      return 1;
+    }
+    return -1;
 	}
 	
 	/**
@@ -211,14 +248,31 @@ class WP_Eldis {
 	function print_theme_results($results){
 		if(isset($results) && !empty($results)){
 			echo '<legend>Results</legend>';
-			foreach($results as $result){
-				echo '<label><input type="radio" name="themecats_eldis_object" value="'.$result->object_id.'" />&nbsp;'.$result->title.'</label><br />';
+			echo '<ul class="tree">';
+			foreach($results as $result => $value){
+			  $this->output_theme_results($result,$value);
 			}
+			echo '</ul>';
 		} else {
 			echo 'Sorry no matching results were found.';
 		}
 	}
-	
+	function output_theme_results($result,$value){
+	  if(array_key_exists('object_id',$value)){
+	    echo '<li><label><input type="radio" name="themecats_eldis_object" value="'.$value['object_id'].'"/>'. $result.'</label>';
+	  } else {
+	    echo '<li><label>'.$result.'</label>';
+	  }
+	  echo '<ul>';	    
+    foreach($value as $child => $childcontent){
+      if($child != 'object_id'){
+        $this->output_theme_results($child,$childcontent);
+      }         
+	  }
+	  echo '</ul>';
+	  echo '</li>';
+	}
+
 	/**
 	 * Retrieves the eldis object id of the given term
 	 * 

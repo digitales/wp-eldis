@@ -3,3 +3,41 @@
 	padding:5px;
 	width:auto;
 }
+ul.tree, ul.tree ul {
+  list-style-type: none;
+  background: url('images/vline.png') repeat-y;
+  margin: 0;
+  padding: 0;
+}   
+ul.tree ul {
+  margin-left: 10px;
+}
+
+ul.tree li {
+  margin: 0;
+  padding: 0 12px;
+  line-height: 20px;
+  background: url('images/node.png') no-repeat;
+}
+ul.tree li:last-child {
+     background: #fff url('images/lastnode.png') no-repeat;
+}
+input.tree{
+  margin:50px;
+}
+/*
+#theme_results ul{
+  list-style-type: square;
+  margin-left:20px;
+}
+#theme_results li > ul{
+  margin-left:20px;
+}*/
+#theme_results.ajax-loading{
+  width:220px;
+  height:20px;
+  margin:10px;
+  visibility:visible;
+  background-repeat:no-repeat;
+  background-image:url('images/ajax-loader.gif');  
+}

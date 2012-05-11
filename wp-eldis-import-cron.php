@@ -43,15 +43,15 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @param array $object_ids
 	 * @return void
 	 */
-	private function import($object_ids){
-		foreach( $object_ids as $object_type => $object_type_ids ){
-			foreach( $object_type_ids as $object_id ){
+	private function import($object_ids) {
+		foreach ( $object_ids as $object_type => $object_type_ids ) {
+			foreach ( $object_type_ids as $object_id ) {
 				$this->api->setQuery( array(
 	        		$object_type => $object_id,
 	        	));
 				$response = $this->api->getResponse( 0, null, 1);
-				foreach( $response->results as $resource ){
-					if( !in_array( $resource->object_id, $this->resources ) ){
+				foreach ( $response->results as $resource ) {
+					if( !in_array( $resource->object_id, $this->resources ) ) {
 						$this->resources[] = $resource->object_id;
 						$this->add_new_resource( $resource );						
 					}
@@ -110,7 +110,7 @@ class WP_Eldis_Import extends WP_Eldis {
 		foreach( $regions as $region){
 			$object_id = $this->get_eldis_object( $region );
 			if($object_id){
-				if($region->parent == 0){
+				if($region->parent === 0){
 					$region_object_ids[] = $object_id;
 				} else {
 					$country_object_ids[] = $object_id;
