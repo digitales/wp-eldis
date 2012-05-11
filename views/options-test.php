@@ -13,7 +13,7 @@
         <?php if ($has_api_key): ?>
             <h3>Test the API</h3>
             
-            <form action="<?php echo admin_url('admin.php?page=wp_eldis_test'); ?>" method="post">
+            <form id="form-test-eldis" name="test-eldis" action="<?php echo admin_url('admin.php?page=wp_eldis_test'); ?>" method="post">
                 <p>
                     <label for="object">Object:</label>
                     <select name="object">
@@ -36,7 +36,7 @@
                 
                 <p>
                     <input type="hidden" name="task" value="test" />
-                    <input type="submit" value="Test" class="button-primary" />
+                    <input type="submit" value="Test" name="test-eldis-options" class="button-primary" />
                 </p>
                 
             </form>
@@ -62,6 +62,7 @@
                 <p>No results found</p>
             <?php endif; ?>
         <?php endif;?>
+    
     </div>
 
 </div>

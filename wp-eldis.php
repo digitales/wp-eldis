@@ -43,7 +43,7 @@ register_deactivation_hook( __FILE__, array($eldis, 'deactivate') );
 //add_action( 'widgets_init', create_function( '', 'return register_widget("WP_Eldis_Documents");' ) );
 add_action( 'widgets_init', create_function( '', 'return register_widget("WP_Eldis_Reading_Widget");' ) );
 add_action('admin_menu', array($eldis, 'admin_menu'));
-add_filter( 'the_content', array($eldis, 'the_content_filter') );
+// add_filter( 'the_content', array($eldis, 'the_content_filter') );
 
 add_action('admin_init', array($eldis, 'admin_init'));
 add_action('admin_notices', array($eldis, 'admin_notices'), 12);
@@ -59,7 +59,7 @@ add_action( 'edited_term', array($eldis, 'save_eldis_object_field'), 10, 3);
 
 add_action( 'admin_enqueue_scripts', array( $eldis, 'add_eldis_theme_script'), 10, 1 );
 
-add_action( 'wp_ajax_theme_results', array( $eldis, 'theme_results_callback'));
+add_action( 'wp_ajax_theme_results', array( $eldis, 'theme_results_callback') );
 
 class WP_Eldis {
     
@@ -327,7 +327,10 @@ class WP_Eldis {
      */
     function activate()
     {
-    	// @todo We need to create a cache folder and assign the relavent permissions.
+    	// @todo We need to create a cache folder and assign the relevant permissions.
+    	
+    	// Schedule caching event daily
+    	wp_schedule_event(time(), 'daily', array('WP_Eldis_Import', 'eldis_cache_objects'));
     }
     
     /**
@@ -371,12 +374,74 @@ class WP_Eldis {
         $pages[] = add_menu_page('WP Eldis', 'WP Eldis', 'manage_options', 'wp_eldis', array($options_controller, 'admin_options'), FALSE);
    
         if ($this->options->get('api_key')) {
-            $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Test', 'manage_options', 'wp_eldis_test', array($options_controller, 'test_options'));
+            $pages[] = add_submenu_page('wp_eldis', 'WP Options', 'Import and Test', 'manage_options', 'wp_eldis_test', array($this, 'test_page_submit'));
         }
 
         //foreach ($pages as $page){
         //    add_action('admin_print_styles-' . $page, array($this, 'admin_styles'));
         //}
+    }
+    
+    /**
+     * Handles the form submit and outputting of the "import and test" page.
+     * -- On Import, we import all the Documents related to the Regions and Themes which have 
+     *    been linked to an Eldis object id.
+     * -- On Test Import (i.e. Dry Run), we create the associative arrays (post and meta) necessary for 
+     *    the import, but we var_dump them. This should and has been disabled for production purposes.
+     * -- On Clear Resources, we delete ALL the posts of the Eldis user (ID: 46). This has been disabled
+     *    for in case, the client accidentally deletes all posts.
+     *
+     * @author Maarten Jacobs
+     */
+    function test_page_submit() {
+      
+      // Handle testing of Eldis options
+      if (isset($_POST['test-eldis-options'])) {
+        $options_controller = new WP_Eldis_Options_Controller();
+        $options_controller->handle_post_data();
+        $options_controller->test_options();
+      }
+      
+      // Handle testing of Eldis import script
+      if (isset($_POST['test-eldis-import'])) {
+        require_once __DIR__ . '/wp-eldis-import-cron.php';
+        // TRUE for testing purposes
+        $import_dry_run = WP_Eldis_Import::start_import(TRUE);
+        
+        echo $this->render('import-dryrun.php', array(
+          'import_dry_run' => $import_dry_run
+        ));
+      } else {
+        $result = array();
+        
+        if (isset($_POST['do-eldis-import'])) {
+          $imported_count = count(WP_Eldis_Import::start_import());
+          
+          $result['imported_count'] = $imported_count;
+        }
+        
+        if (isset($_POST['clear-eldis-import'])) {
+          // Get all posts from eldiscommunity user (id: 46)
+          // and delete those posts
+          $posts_query = array(
+            'author' => 46,
+            'post_type' => 'resource',
+            'posts_per_page' => -1,
+          );
+          $posts_result = new WP_Query();
+          $posts_result = $posts_result->query($posts_query);
+          $deleted_count = count($posts_result);
+          foreach ($posts_result as $resource_post) {
+            wp_delete_post($resource_post->ID, true);
+          }
+          
+          $result['deleted_posts'] = true;
+          $result['deleted_count'] = $deleted_count;
+        }
+        
+        echo $this->render('import-dryrun.php', $result);
+      }
+      
     }
    
     /**
