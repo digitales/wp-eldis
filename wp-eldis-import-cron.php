@@ -56,22 +56,6 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @param array $object_ids
 	 * @return array
 	 */
-<<<<<<< HEAD
-	private function import($object_ids) {
-		foreach ( $object_ids as $object_type => $object_type_ids ) {
-			foreach ( $object_type_ids as $object_id ) {
-				$this->api->setQuery( array(
-	        		$object_type => $object_id,
-	        	));
-				$response = $this->api->getResponse( 0, null, 1);
-				foreach ( $response->results as $resource ) {
-					if( !in_array( $resource->object_id, $this->resources ) ) {
-						$this->resources[] = $resource->object_id;
-						$this->add_new_resource( $resource );						
-					}
-				}
-			}
-=======
 	private function import($object_ids, $dry_run = FALSE){
 	  $results = array();
 	  
@@ -92,7 +76,6 @@ class WP_Eldis_Import extends WP_Eldis {
   				}
   			}
 		  }
->>>>>>> c592f836e486774aed8d792ec3985b7a189d55b3
 		}
 		
 		return $results;
@@ -201,12 +184,7 @@ class WP_Eldis_Import extends WP_Eldis {
 			$object_id = $this->get_eldis_object( $region );
 			
 			if($object_id){
-<<<<<<< HEAD
-				if($region->parent === 0){
-					$region_object_ids[] = $object_id;
-				} else {
-					$country_object_ids[] = $object_id;
-=======
+
 			  if (!isset($region_object_ids[$region->term_id])) {
   			  $region_object_ids[$region->term_id] = array(
   			    'term' => $region,
@@ -227,7 +205,6 @@ class WP_Eldis_Import extends WP_Eldis {
 					$region_object_ids[$region->term_id]['resource_ids'][$object_id] = $object_id;
 				} else if ($region->parent != 0 && !$saved_in_countries) {
 					$country_object_ids[$region->term_id]['resource_ids'][$object_id] = $object_id;
->>>>>>> c592f836e486774aed8d792ec3985b7a189d55b3
 				}
 			}
 		}
