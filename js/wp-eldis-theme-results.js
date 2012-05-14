@@ -1,18 +1,22 @@
 function update_results_from_keywords($form){
+  jQuery('#theme_results').empty();
+  jQuery('#theme_results').removeClass('show_results'); 
+  jQuery('#theme_results').addClass('ajax-loading');
 	var selection = { 
 		type: 'POST',
 		url: wpajax.ajaxurl,
 		data: 'action=theme_results&keywords='+jQuery('#keywords').val(),
 		dataType: 'html',
 		complete: function(){
-			$form.removeClass('submitting-ajax');
+			jQuery('#theme_results').removeClass('ajax-loading');
+			$form.removeClass('submitting-ajax');			
 		},
 		error: function(xhr, textStatus, errorThrown, XMLHttpRequest) { 
 			jQuery('<p>Sorry, your request could not be completed at the moment due to ' + errorThrown + ' </p>').appendTo('#theme_results') 
 			}, 
 		success: function(html, htmlStatus) {
 			jQuery('#theme_results').addClass('show_results'); 
-			jQuery('#theme_results').html(html); 
+			jQuery('#theme_results').html(html);
 			} 
 	}
 	
