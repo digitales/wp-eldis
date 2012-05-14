@@ -109,7 +109,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	    ),
 	    'meta' => array(
 	      'eldis_real_author' => $resource_author,
-	      'eldis_uri' => $resource->website_url,
+	      'syndication_permalink' => $resource->website_url,
 	      'eldis_object_id' => $resource->object_id,
 	    )
 	  );
@@ -139,6 +139,12 @@ class WP_Eldis_Import extends WP_Eldis {
 	    foreach ($resource_post['meta'] as $meta_key => $meta_value) {
         add_post_meta($resource_id, $meta_key, $meta_value);
 	    }
+	    // Add post terms
+	    if(isset($resource_post['post']['tax_input'])){
+        foreach( $resource_post['post']['tax_input'] as $taxonomy => $term_id){
+          $result = wp_set_object_terms( $resource_id, intval(array_shift($term_id)), $taxonomy );
+        }
+      }
 	  }
 	  
 	  // Inserted resource
