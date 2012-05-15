@@ -1,5 +1,5 @@
 <?php
-
+$wp_eldis_import = new WP_Eldis_Import();
 
 class WP_Eldis_Import extends WP_Eldis {
 	protected $numberdocs;
@@ -15,7 +15,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	 */
 	function __construct(){
 		$this->numberdocs = 3;
-		add_action( 'wp_eldis_cron_job', array( $this, 'start_import') );
+		add_action( 'wp_eldis_cron_job', array( &$this, 'start_import') );
 		parent::__construct();		
 	}
 	
