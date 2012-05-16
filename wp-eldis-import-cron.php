@@ -96,7 +96,10 @@ class WP_Eldis_Import extends WP_Eldis {
 	    $resource_author = $resource->author[0];
 	  } else {
 	    $resource_author = 'Eldis';
-	  }
+	  }	  
+	  
+	  $cat_id = $this->get_category_id('indirect','category');
+	  $eldis_term_id =  $this->get_category_id('Eldis','organisationcats');
 	  
 	  $resource_post = array(
 	    'post' => array(
@@ -107,6 +110,7 @@ class WP_Eldis_Import extends WP_Eldis {
         'post_title' => $resource->title,
         'post_type' => 'resource',
         'post_excerpt' => $resource->title,
+        'post_category' => array($cat_id),
 	    ),
 	    'meta' => array(
 	      'eldis_real_author' => $resource_author,
@@ -118,7 +122,8 @@ class WP_Eldis_Import extends WP_Eldis {
 	  // Add term, which is the link to this resource
 	  if (isset($term) && isset($term->taxonomy)) {
 	    $resource_post['post']['tax_input'] = array(
-        $term->taxonomy => array($term->term_id,)
+        $term->taxonomy => array($term->term_id,),
+        'organisationcats' => array($eldis_term_id)
 	    );
 	  }
 	  
@@ -152,6 +157,12 @@ class WP_Eldis_Import extends WP_Eldis {
 	  return true;
 	}
 
+  //get category id by it's name
+  function get_category_id($cat_name, $type){
+    $term = get_term_by('name', $cat_name, $type);
+    return $term->term_id;      
+  }
+  
 	/**
 	 * Get all the theme eldis object id's currently contained whitin CDKN
 	 * 
