@@ -15,7 +15,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	 */
 	function __construct(){
 		$this->numberdocs = 3;
-		add_action( 'wp_eldis_cron_job', array( &$this, 'start_import') );
+		add_action( 'wp_eldis_cron_job', array( $this, 'start_import') );
 		parent::__construct();		
 	}
 	
@@ -35,12 +35,21 @@ class WP_Eldis_Import extends WP_Eldis {
 	/**
 	 * Sets all the needed variables and starts the import
 	 * 
-	 * @return void
+	 * @return array
 	 */
 	function initiate_import( $dry_run = FALSE ){
+
+		// Get the linked theme ids from our terms
 		$object_ids = $this->get_region_object_ids();
 		$object_ids['theme'] = $this->get_theme_object_ids();
-		$this->totalterms = count( $object_ids );
+
+		// TODO: figure out if the error is here.
+		// The totalterms will always equal 3 here, because it looks at the toplevel values
+		// as opposed to the term ids per category (country, theme, region)
+		$this->totalterms = 0; // count( $object_ids );
+		foreach ($object_ids as $term_holder) {
+			$this->totalterms += count($term_holder);
+		}
 		$this->resources = $this->get_resource_object_ids();
 		
 		$this->setAPI();
@@ -60,17 +69,23 @@ class WP_Eldis_Import extends WP_Eldis {
 	private function import($object_ids, $dry_run = FALSE){
 	  $results = array();
 	  
+
 		foreach( $object_ids as $object_type => $term_resources_holder ){
 		  foreach ($term_resources_holder as $term_resources) {
 		    $term = $term_resources['term'];
   		  $term_resource_ids = $term_resources['resource_ids'];
   		  
   		  foreach ($term_resource_ids as $object_id) {
-  				$this->api->setQuery( array( $object_type => $object_id, ) );
-  				$response = $this->api->getResponse( 0, null, 1);
+  				$this->api->setQuery( array( 
+  						$object_type => $object_id, 
+  					) 
+  				);
+  				$response = $this->api->getResponse( 0, null, 1 );
 
   				foreach( $response->results as $resource ){
-  					if( !in_array( $resource->object_id, $this->resources ) ){
+  					$is_existing_resource = in_array( $resource->object_id, $this->resources );
+
+  					if( !$is_existing_resource ){
   						$this->resources[] = $resource->object_id;
   					  $results[] = $this->add_new_resource( $term, $resource, $dry_run );
   					}
@@ -80,6 +95,46 @@ class WP_Eldis_Import extends WP_Eldis {
 		}
 		
 		return $results;
+	}
+
+	/**
+	 * Retrieves and caches the term id of the Resource term related to the imported Eldis resourc.
+	 * If the term does not exist, it will create the term as well.
+	 * 
+	 * This is necessary for importing documents from Eldis, as they need
+	 * to be tagged with their appropriate resource type.
+	 *
+	 * @param string $resource_type The imported resource's type. For instance: 'document'
+	 * @return int
+	 * @author Maarten Jacobs
+	 **/
+	protected function get_resource_term_id( $resource_type ) { 
+		static $term_cache;
+
+		// Initialise the cache if necessary
+		$existing_cache = is_array( $term_cache );
+		if (!$existing_cache) {
+			$term_cache = array();
+		}
+
+		// Check if the term is set in the cache
+		$resource_type_key = strtolower($resource_type);
+		if ( !isset( $term_cache[$resource_type_key] ) ) {
+
+			$existing_term = get_term_by( 'name', $resource_type, 'resourcecats', ARRAY_A );
+
+			// Check if the term exists
+			// If not, create the term
+			if (!$existing_term) {
+				$existing_term = wp_insert_term( $resource_type, 'resourcecats' );
+			}
+
+			// Add the term to the cache
+			$term_cache[ $resource_type_key ] = $existing_term[ 'term_id' ];
+
+		}
+
+		return $term_cache[ $resource_type_key ]; 
 	}
 	
 	/**
@@ -122,8 +177,15 @@ class WP_Eldis_Import extends WP_Eldis {
 	  // Add term, which is the link to this resource
 	  if (isset($term) && isset($term->taxonomy)) {
 	    $resource_post['post']['tax_input'] = array(
-        $term->taxonomy => array($term->term_id,),
-        'organisationcats' => array($eldis_term_id)
+        $term->taxonomy => array(
+        	$term->term_id
+        ),
+        'organisationcats' => array(
+        	$eldis_term_id
+        ),
+        'resourcecats' => array(
+        	$this->get_resource_term_id( $resource->object_type )
+        )
 	    );
 	  }
 	  
@@ -195,14 +257,19 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @return array
 	 */
 	private function get_region_object_ids(){
-		$regions = get_terms('regioncats');
 		$region_object_ids = array();
 		$country_object_ids = array();
+
+		// Get all region terms
+		$regions = get_terms('regioncats');
+
 		foreach( $regions as $region ){
+
+			// Get the linked Eldis object id
 			$object_id = $this->get_eldis_object( $region );
-			
 			if($object_id){
 
+				// Initialise the region for saving resource ids
 			  if (!isset($region_object_ids[$region->term_id])) {
   			  $region_object_ids[$region->term_id] = array(
   			    'term' => $region,
@@ -213,20 +280,28 @@ class WP_Eldis_Import extends WP_Eldis {
   			    'resource_ids' => array()
   			  );
   			}
+  			// Hold a reference to the resource holder for ease of use
+  			$region_objects = &$region_object_ids[$region->term_id]['resource_ids'];
+  			$country_objects = &$country_object_ids[$region->term_id]['resource_ids'];
 			  
 			  $parent_is_zero = $region->parent == 0;
-			  $saved_in_regions = isset($region_object_ids[$region->term_id]['resource_ids'][$object_id]);
-			  $saved_in_countries = isset($country_object_ids[$region->term_id]['resource_ids'][$object_id]);
+			  $saved_in_regions = isset( $region_objects[$object_id] );
+			  $saved_in_countries = isset( $country_objects[$object_id] );
 			  
 			  // Save the object id in the appropriate place if not already present
 				if($parent_is_zero && !$saved_in_regions){
-					$region_object_ids[$region->term_id]['resource_ids'][$object_id] = $object_id;
-				} else if ($region->parent != 0 && !$saved_in_countries) {
-					$country_object_ids[$region->term_id]['resource_ids'][$object_id] = $object_id;
+					$region_objects[$object_id] = $object_id;
+				} else if (!$parent_is_zero && !$saved_in_countries) {
+					$country_objects[$object_id] = $object_id;
 				}
+
 			}
 		}
-		return array( 'country' => $country_object_ids, 'region' => $region_object_ids);
+
+		return array( 
+			'country' => $country_object_ids, 
+			'region' => $region_object_ids
+		);
 	}
 	
 	/**
@@ -234,8 +309,13 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * 
 	 * @return array
 	 */
-	private function get_resource_object_ids(){
-		$resources = get_posts(array( 'numberposts' => $this->numberdocs*$this->totalterms, 'post_type' => 'resource' ));
+	protected function get_resource_object_ids(){
+		$resources = get_posts(
+			array( 
+				'numberposts' => $this->numberdocs * $this->totalterms, 
+				'post_type' => 'resource' 
+			)
+		);
 		$resource_object_ids = array();
 		foreach( $resources as $resource ){
 			$object_id = get_post_meta( $resource->ID, 'eldis_object_id', true );
