@@ -34,7 +34,6 @@ include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "models/options.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "controller.php");
 include(dirname(__FILE__) . DIRECTORY_SEPARATOR . "controllers/options_controller.php");
 
-
 $eldis = new WP_Eldis();
 
 register_activation_hook( __FILE__, array($eldis, 'activate') );
@@ -282,6 +281,42 @@ class WP_Eldis {
 	function get_eldis_object( $term ){
 		return get_metadata($term->taxonomy, $term->term_id, $term->taxonomy.'_eldis_object', true);
 	}
+
+  /**
+   * Returns a term object linked to an Eldis ID
+   * If no term is found, false is returned.
+   *
+   * @param int $eldis_id
+   * @param string $taxonomy
+   * @return object
+   * @author Maarten Jacobs
+   **/
+  static function get_term_by_eldis_id( $eldis_id, $taxonomy, $reset = FALSE ) {
+    static $term_cache = array();
+
+    if ( $reset || !isset( $term_cache[ $eldis_id ] ) ) {
+      global $wpdb;
+    
+      // Check if the term id exists for the eldis id
+      $query = sprintf( 
+        "SELECT %s FROM %s WHERE meta_key = '%s' AND meta_value = '%s'", 
+        $taxonomy . '_id',
+        $wpdb->prefix . $taxonomy . 'meta',
+        $taxonomy . '_eldis_object',
+        $eldis_id 
+      );
+      $term_id = (int) $wpdb->get_var( $query );
+
+      // No term id, no linked term
+      if (!$term_id) {
+        $term_cache[ $eldis_id ] = FALSE;
+      } else {
+        $term_cache[ $eldis_id ] = get_term( $term_id, $taxonomy );
+      }
+    }
+
+    return $term_cache[ $eldis_id ];
+  }
 	
 	/**
 	 * Saves the eldis object id set in the term edit page

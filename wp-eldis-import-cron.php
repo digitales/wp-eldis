@@ -144,7 +144,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	 * @return void
 	 */
 	function add_new_resource( $term, $resource, $dry_run = FALSE ){
-	  
+
 	  // 1. Build resource post
 	  $resource_author;
 	  if (is_array($resource->author) && isset($resource->author[0]) && $resource->author[0]) {
@@ -176,6 +176,7 @@ class WP_Eldis_Import extends WP_Eldis {
 	  
 	  // Add term, which is the link to this resource
 	  if (isset($term) && isset($term->taxonomy)) {
+	  	
 	    $resource_post['post']['tax_input'] = array(
         $term->taxonomy => array(
         	$term->term_id
@@ -187,6 +188,23 @@ class WP_Eldis_Import extends WP_Eldis {
         	$this->get_resource_term_id( $resource->object_type )
         )
 	    );
+
+	    // The imported document might not be imported via a 
+	  	// region term. In that case, we'll pull out the regions of the document
+	  	// and search for a term that matches it.
+	  	if ($term->taxonomy != 'regioncats' && isset($resource->category_region_array)) {
+	  		foreach ($resource->category_region_array->Region as $region) {
+	  			$region_term = WP_Eldis::get_term_by_eldis_id( $region->object_id, 'regioncats' );
+
+	  			if ($region_term) {
+	  				if (!isset($resource_post['post']['tax_input']['regioncats'])) {
+	  					$resource_post['post']['tax_input']['regioncats'] = array();
+	  				}
+
+	  				$resource_post['post']['tax_input']['regioncats'][] = (int)$region_term->term_id;
+	  			}
+	  		}
+	  	}
 	  }
 	  
 	  // On dry run, create the post associative arrays as you would before actual creation (duh)
@@ -209,8 +227,9 @@ class WP_Eldis_Import extends WP_Eldis {
 	    }
 	    // Add post terms
 	    if(isset($resource_post['post']['tax_input'])){
-        foreach( $resource_post['post']['tax_input'] as $taxonomy => $term_id){
-          $result = wp_set_object_terms( $resource_id, intval(array_shift($term_id)), $taxonomy );
+        foreach( $resource_post['post']['tax_input'] as $taxonomy => $term_ids){
+        	$term_ids = array_unique( array_map( 'intval', $term_ids ) );
+          wp_set_object_terms( $resource_id, $term_ids, $taxonomy );
         }
       }
 	  }
