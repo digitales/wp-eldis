@@ -17,9 +17,69 @@ class WP_Eldis_Options_Controller extends WP_Eldis_Controller {
 	
         $data = array();
         $data['has_api_key'] = $this->options->get('api_key') != FALSE;
+
+        $data['link_status'] = $this->handle_submit();
         
         echo $this->render("options-page.php", $data);
         
+    }
+
+    /**
+     * Retrieves a set of posts, and assigns the term to the posts.
+     *
+     * @param int $term_id
+     *      The category id
+     * @param array $query
+     *      Optional query setup
+     *      Overwrites the settings of the function
+     * @param string $term_taxonomy
+     *      The taxonomy of the term given
+     * @return int The number of posts affected
+     * @author Maarten Jacobs
+     **/
+    protected function link_posts_to_term( $term_id, array $post_query = array(), $term_taxonomy = 'category' ) {
+        if (!is_int($term_id) || !$term_id) {
+            throw new Exception('No term id was given.');
+        }
+
+        // Build the query
+        $query = array( 
+            'posts_per_page' => -1,
+        );
+        $query = array_merge( $post_query, $query );
+
+        // Get the posts
+        $query_result = new WP_Query( $query );
+        $query_result = $query_result->get_posts();
+
+        // Link the term to the posts
+        // TEST
+        foreach ( $query_result as $post ) {
+            $link_result = wp_set_post_terms( $post->ID, $term_id, $term_taxonomy, true );
+            if ( is_wp_error( $link_result ) ) {
+                throw new Exception('Invalid taxonomy given.');
+            }
+        }
+
+        return count( $query_result );
+    }
+
+    function handle_submit() {
+        $data = $_POST;
+
+        if ( isset( $data['link_eldis_news'] ) ) {
+            $news_cat_id = (int)$this->get_category_id( 'news', 'category' );
+            $result = $this->link_posts_to_term( $news_cat_id, array(
+                    'category__in' => array( (int)$this->get_category_id( 'indirect', 'category' ) ),
+                    'category__not_in' => array( $news_cat_id ),
+                    'author' => 46,
+                    'post_type' => array( 'resource' )
+                ) 
+            );
+            return "Affected $result resources.";
+        }
+
+        return FALSE;
     }
     
     function test_options()
