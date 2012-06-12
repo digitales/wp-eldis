@@ -78,16 +78,6 @@ class WP_Eldis {
         wp_enqueue_style( 'wp-eldis' );
         wp_register_style('wp-eldis', plugins_url('eldis.css', __FILE__));
     }
-
-  /**
-   * Returns the term id of the term with the given name.
-   *
-   * @return int
-   **/
-  function get_category_id($cat_name, $type){
-    $term = get_term_by('name', $cat_name, $type);
-    return $term->term_id;      
-  }
     
 	/**
 	 * Adds the eldis object id field to the regions term backend
@@ -435,7 +425,7 @@ class WP_Eldis {
      * @author Maarten Jacobs
      */
     function test_page_submit() {
-
+      
       // Handle testing of Eldis options
       if (isset($_POST['test-eldis-options'])) {
         $options_controller = new WP_Eldis_Options_Controller();

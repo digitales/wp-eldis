@@ -10,7 +10,9 @@
 
 <div id="wp-eldis-container" class="sidebar-right">
     
-    <div class="sidebar"></div>
+    <div class="sidebar">
+
+    </div>
     
     <div id="main">
         
@@ -66,18 +68,9 @@
             </p>
         <?php endif; ?>
         
-        <h3>Link News category to Eldis resources</h3>
-
-        <?php if (!$link_status): ?>
-            <p>Older Eldis posts may have been imported without the News category. <br />You can use the following button to make sure the News category is linked to those posts.</p>
-
-            <form action="<?php echo admin_url('admin.php?page=wp_eldis') ;?>" method="post" accept-charset="utf-8">
-                <input type="submit" name="link_eldis_news" value="Link News to Eldis resources" class="button-primary">
-            </form>
-        <?php else: ?>
-            <p><?php echo $link_status ?></p>
-        <?php endif; ?>
-
-    </div>  
+        
+    </div>    
+    
+    </div>
 
 </div>
