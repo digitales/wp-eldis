@@ -43,9 +43,6 @@ class WP_Eldis_Import extends WP_Eldis {
 		$object_ids = $this->get_region_object_ids();
 		$object_ids['theme'] = $this->get_theme_object_ids();
 
-		// TODO: figure out if the error is here.
-		// The totalterms will always equal 3 here, because it looks at the toplevel values
-		// as opposed to the term ids per category (country, theme, region)
 		$this->totalterms = 0; // count( $object_ids );
 		foreach ($object_ids as $term_holder) {
 			$this->totalterms += count($term_holder);
@@ -69,8 +66,11 @@ class WP_Eldis_Import extends WP_Eldis {
 	private function import($object_ids, $dry_run = FALSE){
 	  $results = array();
 
-
+	  // The object ids holders (terms) are grouped by the type of parent (country, region, theme).
+	  // Loop over the type, to get all the terms relating to them.
 		foreach( $object_ids as $object_type => $term_resources_holder ){
+
+			// Looping over all terms
 		  foreach ($term_resources_holder as $term_resources) {
 		    $term = $term_resources['term'];
   		  $term_resource_ids = $term_resources['resource_ids'];
@@ -334,13 +334,18 @@ class WP_Eldis_Import extends WP_Eldis {
 	 *
 	 * @return array
 	 */
-	protected function get_resource_object_ids(){
-		$resources = get_posts(
-			array(
-				'numberposts' => $this->numberdocs * $this->totalterms,
-				'post_type' => 'resource'
-			)
+	protected function get_resource_object_ids() {
+		// All existing Eldis resources have an Eldis object id linked to them.
+		// This way we can prevent duplicate resources from entering the stream.
+		$resource_args = array(
+			'posts_per_page' => -1,
+			'post_type' => 'resource',
+			'meta_key' => 'eldis_object_id'
 		);
+		$resource_query = new WP_Query( $resource_args );
+		$resources = $resource_query->get_posts();
+
+		// Get all the Eldis Object ids
 		$resource_object_ids = array();
 		foreach( $resources as $resource ){
 			$object_id = get_post_meta( $resource->ID, 'eldis_object_id', true );
