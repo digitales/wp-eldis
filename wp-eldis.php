@@ -362,10 +362,6 @@ class WP_Eldis {
      */
     function activate()
     {
-    	// @todo We need to create a cache folder and assign the relevant permissions.
-    	
-    	// Schedule caching event daily
-    	wp_schedule_event(time(), 'daily', array('WP_Eldis_Import', 'eldis_cache_objects'));
     }
     
     /**
